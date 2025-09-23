@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculateur f(x) / f⁻¹(x)</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    input, select, button {
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #333;
+    }
+    .result {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>🧮 Calculateur f(x) / f⁻¹(x)</h2>
+  <label for="functionInput">Entrez f(x) (ex: x*2, Math.sin(x)) :</label>
+  <input type="text" id="functionInput" placeholder="f(x) = ...">
+
+  <label for="xInput">Entrez x :</label>
+  <input type="number" id="xInput" placeholder="x = ...">
+
+  <label for="mode">Mode :</label>
+  <select id="mode">
+    <option value="normal">f(x)</option>
+    <option value="inverse">f⁻¹(x)</option>
+  </select>
+
+  <button onclick="calculate()">Calculer</button>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    function calculate() {
+      const fx = document.getElementById('functionInput').value;
+      const x = parseFloat(document.getElementById('xInput').value);
+      const mode = document.getElementById('mode').value;
+      const resultDiv = document.getElementById('result');
+
+      try {
+        if (mode === 'normal') {
+          const f = new Function('x', 'return ' + fx);
+          const result = f(x);
+          resultDiv.textContent = `f(${x}) = ${result}`;
+        } else {
+          // Inversion par recherche numérique simple
+          const f = new Function('x', 'return ' + fx);
+          let approx = null;
+          for (let i = -1000; i <= 1000; i += 0.01) {
+            if (Math.abs(f(i) - x) < 0.001) {
+              approx = i;
+              break;
+            }
+          }
+          if (approx !== null) {
+            resultDiv.textContent = `f⁻¹(${x}) ≈ ${approx.toFixed(4)}`;
+          } else {
+            resultDiv.textContent = `Impossible de trouver f⁻¹(${x})`;
+          }
+        }
+      } catch (e) {
+        resultDiv.textContent = "Erreur dans la fonction ou la valeur.";
+      }
+    }
+  </script>
+</body>
+</html>
