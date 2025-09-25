@@ -1,82 +1,271 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Calculateur f(x) / f⁻¹(x)</title>
+  <meta charset="utf-8" />
+  <title>Calculateur f(x) / f⁻¹(x) — Amélioré</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body {
-      background-color: #121212;
-      color: #e0e0e0;
-      font-family: Arial, sans-serif;
-      padding: 20px;
+    :root{
+      --bg:#0f1113; --panel:#131516; --muted:#9aa0a6; --accent:#60a5fa; --danger:#fb7185;
+      --card:#121316; --glass: rgba(255,255,255,0.03);
     }
-    input, select, button {
-      background-color: #1e1e1e;
-      color: #e0e0e0;
-      border: 1px solid #444;
-      padding: 8px;
-      margin: 5px 0;
-      width: 100%;
-    }
-    button:hover {
-      background-color: #333;
-    }
-    .result {
-      margin-top: 15px;
-      font-weight: bold;
-    }
+    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#080909);color:#e6eef6;}
+    .container{max-width:880px;margin:28px auto;padding:20px;border-radius:12px;background:linear-gradient(180deg,var(--card),transparent);box-shadow:0 6px 30px rgba(0,0,0,0.6);}
+    h2{margin:0 0 14px 0;font-weight:600}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:12px}
+    input[type="text"], input[type="number"], select, button {display:block;width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--panel);color:inherit;margin-top:6px;box-sizing:border-box}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .controls{margin-top:12px;display:flex;gap:8px}
+    button.primary{background:linear-gradient(90deg,var(--accent),#3b82f6);border:none;color:#061125;font-weight:600;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);cursor:pointer}
+    .result{margin-top:16px;padding:12px;border-radius:8px;background:var(--glass);font-family:monospace;white-space:pre-wrap;overflow:auto;max-height:320px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:right;font-family:monospace}
+    th{color:var(--muted);text-align:left}
+    .small{font-size:13px;color:var(--muted)}
+    .row-full{grid-column:1 / -1}
+    .inline{display:flex;gap:8px}
+    @media(max-width:720px){.grid{grid-template-columns:1fr}.inline{flex-direction:column}}
   </style>
 </head>
 <body>
-  <h2>🧮 Calculateur f(x) / f⁻¹(x)</h2>
-  <label for="functionInput">Entrez f(x) (ex: x*2, Math.sin(x)) :</label>
-  <input type="text" id="functionInput" placeholder="f(x) = ...">
+  <div class="container" role="main">
+    <h2>🧮 Calculateur f(x) / f⁻¹(x) — Amélioré</h2>
 
-  <label for="xInput">Entrez x :</label>
-  <input type="number" id="xInput" placeholder="x = ...">
+    <label for="fn">Entrez f(x) — utilisez x et Math (ex: Math.sin(x), x*x + 2*x - 1)</label>
+    <input id="fn" type="text" placeholder="ex: Math.sin(x) * 2" value="Math.sin(x)">
 
-  <label for="mode">Mode :</label>
-  <select id="mode">
-    <option value="normal">f(x)</option>
-    <option value="inverse">f⁻¹(x)</option>
-  </select>
+    <div class="grid">
+      <div>
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="normal">f(x) (évaluer)</option>
+          <option value="list">Générer une liste d'échantillons</option>
+          <option value="inverse">f⁻¹(x) (inversion numérique)</option>
+        </select>
+      </div>
 
-  <button onclick="calculate()">Calculer</button>
+      <div>
+        <label for="xValue">Valeur x ou y (selon mode)</label>
+        <input id="xValue" type="text" placeholder="nombre (ex: 1.2)"/>
+      </div>
 
-  <div class="result" id="result"></div>
+      <div>
+        <label for="start">Plage start (pour liste / inversion)</label>
+        <input id="start" type="number" step="any" placeholder="-10" value="-10">
+      </div>
+
+      <div>
+        <label for="end">Plage end (pour liste / inversion)</label>
+        <input id="end" type="number" step="any" placeholder="10" value="10">
+      </div>
+
+      <div>
+        <label for="step">Step (pour liste, positif)</label>
+        <input id="step" type="number" step="any" placeholder="0.1" value="0.1">
+      </div>
+
+      <div>
+        <label for="tol">Tolérance (inversion)</label>
+        <input id="tol" type="number" step="any" placeholder="1e-6" value="1e-6">
+      </div>
+
+      <div>
+        <label for="maxIter">Itérations max (inversion)</label>
+        <input id="maxIter" type="number" step="1" placeholder="100" value="100">
+      </div>
+
+      <div class="row-full small">
+        <label>Options supplémentaires</label>
+        <div class="inline">
+          <button id="evalBtn" class="primary">Calculer / Générer</button>
+          <button id="copyBtn" class="ghost">Copier résultat</button>
+          <button id="clearBtn" class="ghost">Effacer</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="message" class="small" style="margin-top:10px"></div>
+
+    <div id="output" class="result" aria-live="polite">Résultat ici...</div>
+
+    <div id="tableContainer"></div>
+  </div>
 
   <script>
-    function calculate() {
-      const fx = document.getElementById('functionInput').value;
-      const x = parseFloat(document.getElementById('xInput').value);
-      const mode = document.getElementById('mode').value;
-      const resultDiv = document.getElementById('result');
-
-      try {
-        if (mode === 'normal') {
-          const f = new Function('x', 'return ' + fx);
-          const result = f(x);
-          resultDiv.textContent = `f(${x}) = ${result}`;
-        } else {
-          // Inversion par recherche numérique simple
-          const f = new Function('x', 'return ' + fx);
-          let approx = null;
-          for (let i = -1000; i <= 1000; i += 0.01) {
-            if (Math.abs(f(i) - x) < 0.001) {
-              approx = i;
-              break;
-            }
-          }
-          if (approx !== null) {
-            resultDiv.textContent = `f⁻¹(${x}) ≈ ${approx.toFixed(4)}`;
-          } else {
-            resultDiv.textContent = `Impossible de trouver f⁻¹(${x})`;
-          }
-        }
-      } catch (e) {
-        resultDiv.textContent = "Erreur dans la fonction ou la valeur.";
-      }
+    // Contexte sûr limité : on expose Math et constantes utiles uniquement
+    function makeFunction(expr) {
+      // validate: only allow certain characters to reduce risk (letters, numbers, operators, Math, _)
+      if (typeof expr !== 'string' || expr.trim() === '') throw new Error('Expression vide');
+      // simple blacklist of suspicious tokens
+      const blacklist = ['constructor', 'prototype', 'window', 'document', 'eval', 'require', 'globalThis', 'XMLHttpRequest', 'fetch'];
+      for (const t of blacklist) if (expr.includes(t)) throw new Error('Token interdit dans l\'expression');
+      // allow Math prefix and x variable
+      // create function with Math and a safe subset of globals
+      const fn = new Function('x', 'Math', 'return (' + expr + ')');
+      return (x) => fn(x, Math);
     }
+
+    function formatNum(n, dp = 8) {
+      if (!isFinite(n)) return String(n);
+      // reduce trailing zeros
+      return parseFloat(n.toFixed(dp)).toString();
+    }
+
+    function generateList(f, start, end, step) {
+      const list = [];
+      if (step <= 0) throw new Error('Step doit être > 0');
+      const n = Math.floor((end - start) / step);
+      let x = start;
+      for (let i = 0; i <= n; i++) {
+        try {
+          const y = f(x);
+          list.push({x: x, y: y});
+        } catch (e) {
+          list.push({x: x, y: NaN});
+        }
+        x = start + (i+1) * step;
+      }
+      // include exact end if rounding left it out
+      if (Math.abs(list[list.length-1].x - end) > 1e-12) {
+        try { list.push({x: end, y: f(end)}); } catch(e){ list.push({x:end,y:NaN}); }
+      }
+      return list;
+    }
+
+    // attempt to find inverse y0 = f(x) -> find x in [a,b] using bracket search and bisection
+    function findInverse(f, y0, a, b, tol = 1e-7, maxIter = 100) {
+      // ensure a < b
+      if (a > b) [a,b] = [b,a];
+      let fa = f(a) - y0;
+      let fb = f(b) - y0;
+      // if exact endpoints
+      if (Math.abs(fa) <= tol) return a;
+      if (Math.abs(fb) <= tol) return b;
+      // try to expand bracket a bit if signs same
+      if (fa * fb > 0) {
+        const expansions = 6;
+        let step = (b - a) || 1;
+        for (let i=0;i<expansions;i++){
+          a -= step; b += step; step *= 2;
+          fa = f(a) - y0; fb = f(b) - y0;
+          if (Math.abs(fa) <= tol) return a;
+          if (Math.abs(fb) <= tol) return b;
+          if (fa * fb <= 0) break;
+        }
+      }
+      if (fa * fb > 0) {
+        throw new Error('Pas de changement de signe trouvé sur l\'intervalle donné');
+      }
+      // bisection
+      let left = a, right = b, fl = fa, fr = fb;
+      for (let i=0;i<maxIter;i++){
+        const mid = (left + right) / 2;
+        const fm = f(mid) - y0;
+        if (!isFinite(fm)) throw new Error('Valeur non finie pendant bissection');
+        if (Math.abs(fm) <= tol) return mid;
+        if (fl * fm <= 0) { right = mid; fr = fm; }
+        else { left = mid; fl = fm; }
+        if (Math.abs(right - left) <= tol) return (left + right) / 2;
+      }
+      throw new Error('Max itérations atteint (bissection)');
+    }
+
+    // UI wiring
+    const fnInput = document.getElementById('fn');
+    const modeSel = document.getElementById('mode');
+    const xInput = document.getElementById('xValue');
+    const startInput = document.getElementById('start');
+    const endInput = document.getElementById('end');
+    const stepInput = document.getElementById('step');
+    const tolInput = document.getElementById('tol');
+    const maxIterInput = document.getElementById('maxIter');
+    const out = document.getElementById('output');
+    const msg = document.getElementById('message');
+    const tableContainer = document.getElementById('tableContainer');
+
+    function showMessage(text, isError=false){
+      msg.textContent = text || '';
+      msg.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+    }
+
+    function renderTable(list) {
+      if (!Array.isArray(list)) { tableContainer.innerHTML = ''; return; }
+      let html = '<table><thead><tr><th>x</th><th>f(x)</th></tr></thead><tbody>';
+      for (const row of list) {
+        html += `<tr><td>${formatNum(row.x,8)}</td><td>${formatNum(row.y,8)}</td></tr>`;
+      }
+      html += '</tbody></table>';
+      tableContainer.innerHTML = html;
+    }
+
+    document.getElementById('evalBtn').addEventListener('click', () => {
+      showMessage('');
+      tableContainer.innerHTML = '';
+      out.textContent = '';
+      try {
+        const expr = fnInput.value.trim();
+        const f = makeFunction(expr);
+
+        const mode = modeSel.value;
+        const xValRaw = xInput.value.trim();
+        const start = parseFloat(startInput.value);
+        const end = parseFloat(endInput.value);
+        const step = parseFloat(stepInput.value);
+        const tol = parseFloat(tolInput.value) || 1e-6;
+        const maxIter = Math.max(1, parseInt(maxIterInput.value) || 100);
+
+        if (mode === 'normal') {
+          if (xValRaw === '') throw new Error('Entrez une valeur x');
+          const x = parseFloat(xValRaw);
+          const y = f(x);
+          out.textContent = `f(${formatNum(x)}) = ${formatNum(y)}`;
+        } else if (mode === 'list') {
+          if (!isFinite(start) || !isFinite(end) || !isFinite(step)) throw new Error('Plage invalide');
+          const list = generateList(f, start, end, step);
+          out.textContent = `Liste générée: ${list.length} points. Export JSON prêt.`;
+          renderTable(list);
+          // attach export as JSON in output area
+          out.textContent += '\n\nJSON export (copiable):\n' + JSON.stringify(list.map(r=>[r.x, r.y]), null, 0);
+        } else if (mode === 'inverse') {
+          if (xValRaw === '') throw new Error('Entrez la valeur cible y');
+          if (!isFinite(start) || !isFinite(end)) throw new Error('Entrez une plage start/end pour la recherche');
+          const y0 = parseFloat(xValRaw);
+          const xfound = findInverse(f, y0, start, end, tol, maxIter);
+          out.textContent = `f⁻¹(${formatNum(y0)}) ≈ ${formatNum(xfound,8)}`;
+        } else {
+          throw new Error('Mode inconnu');
+        }
+
+        showMessage('Calcul terminé.', false);
+      } catch (err) {
+        out.textContent = 'Erreur: ' + (err && err.message ? err.message : String(err));
+        showMessage('Voir l\'erreur ci-dessus', true);
+      }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(out.textContent || '');
+        showMessage('Résultat copié dans le presse-papier.');
+      } catch (e) {
+        showMessage('Impossible de copier: permission refusée.', true);
+      }
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      out.textContent = 'Résultat ici...';
+      tableContainer.innerHTML = '';
+      showMessage('');
+    });
+
+    // small UX: adjust placeholder depending on mode
+    modeSel.addEventListener('change', () => {
+      const mode = modeSel.value;
+      if (mode === 'normal') xInput.placeholder = 'Valeur x';
+      if (mode === 'list') xInput.placeholder = 'Non utilisé (laisser vide)';
+      if (mode === 'inverse') xInput.placeholder = 'Valeur y (cible)';
+    });
   </script>
 </body>
 </html>
